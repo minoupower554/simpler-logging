@@ -1,0 +1,35 @@
+[project]
+name = "simpler-logging"
+version = "1.0.0"
+description = "Simple zero-setup logging."
+readme = "README.md"
+authors = [
+    { name = "minoupower554", email = "minoupower554@gmail.com" }
+]
+requires-python = ">=3.8"
+dependencies = [
+    "colorama>=0.4.6",
+]
+license="MIT"
+license-files=["LICENSE"]
+keywords=["logging", "logger", "simple", "zero-setup"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Topic :: System :: Logging",
+    "Topic :: Software Development :: Libraries",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.24,<0.10.0"]
+build-backend = "uv_build"
+
+
+[project.urls]
+Homepage = "https://github.com/minoupower554/simpler-logging"
+Repository = "https://github.com/minoupower554/simpler-logging"
+Issues = "https://github.com/minoupower554/simpler-logging/issues"
