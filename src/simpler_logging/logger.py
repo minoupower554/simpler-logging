@@ -26,7 +26,7 @@ class Handler(Protocol):
 
 
 def main_handler(level: str, color: int | str, msg: str, logger_name: str):
-    print(f"{color}{Style.DIM}[{datetime.now().astimezone().isoformat(timespec='milliseconds')}]{color} {level} {Style.DIM}{logger_name}{color}: {msg}{Style.RESET_ALL}")
+    print(f"{color}{Style.DIM}[{datetime.now().astimezone().isoformat(timespec='milliseconds')}]{color} {level:<5} {Style.DIM}{logger_name}{color}: {msg}{Style.RESET_ALL}")
 
 def default_handler(*, level: LogLevel, msg: str, logger_name: str, do_color: bool):
     if level == LogLevel.DEBUG:
