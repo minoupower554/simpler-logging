@@ -1,6 +1,6 @@
 [project]
 name = "simpler-logging"
-version = "1.0.0"
+version = "1.1.1"
 description = "Simple zero-setup logging."
 readme = "README.md"
 authors = [
