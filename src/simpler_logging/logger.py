@@ -93,6 +93,7 @@ class Logger:
         """Log a warning message."""
         self.log(LogLevel.WARN, msg, *args, **kwargs)
 
+    warning = warn
 
     def error(self, msg: str, *args, **kwargs) -> None:
         """Log an error message."""
