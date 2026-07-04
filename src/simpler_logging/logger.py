@@ -24,9 +24,10 @@ class Handler(Protocol):
     def __call__(self, *, level: LogLevel, msg: str, logger_name: str, do_color: bool) -> None:
         ...
 
+_max_logger_name: int = 0
 
 def main_handler(level: str, color: int | str, msg: str, logger_name: str):
-    print(f"{color}{Style.DIM}[{datetime.now().astimezone().isoformat(timespec='milliseconds')}]{color} {level:<5} {Style.DIM}{logger_name}{color}: {msg}{Style.RESET_ALL}")
+    print(f"{color}{Style.DIM}[{datetime.now().astimezone().isoformat(timespec='milliseconds')}]{color} {level:<5} {Style.DIM}{logger_name:<{_max_logger_name}}{color}: {msg}{Style.RESET_ALL}")
 
 def default_handler(*, level: LogLevel, msg: str, logger_name: str, do_color: bool):
     if level == LogLevel.DEBUG:
@@ -57,6 +58,8 @@ class Logger:
                           LogLevel.WARN: default_handler, LogLevel.ERROR: default_handler,
                           LogLevel.FATAL: default_handler}
         self._do_color = True
+        global _max_logger_name
+        _max_logger_name = max(_max_logger_name, len(name))
 
     def log(self, level: LogLevel, msg: str, *args, **kwargs) -> None:
         """Log a message taking into account the active levels. Generally you should use the dedicated per-level log methods instead."""
