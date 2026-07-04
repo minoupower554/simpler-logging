@@ -44,6 +44,7 @@ def default_handler(*, level: LogLevel, msg: str, logger_name: str, do_color: bo
 
 
 class FatalError(Exception):
+    __module__ = "builtins"
     pass
 
 
