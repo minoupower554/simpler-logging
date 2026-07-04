@@ -1,4 +1,4 @@
-from .logger import LogLevel as LogLevel, Logger as Logger, Handler as Handler
+from .logger import LogLevel as LogLevel, Logger as Logger, Handler as Handler, FatalError as FatalError
 
 logger = Logger("Main")
 """a global Logger instance for convenience."""
