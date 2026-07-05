@@ -1,4 +1,5 @@
 from __future__ import annotations
+from functools import wraps
 from enum import IntEnum
 from colorama import init, Fore, Style
 from datetime import datetime
@@ -26,21 +27,44 @@ class Handler(Protocol):
 
 _max_logger_name: int = 0
 
-def main_handler(level: str, color: Union[int, str], msg: str, logger_name: str):
-    print(f"{color}{Style.DIM}[{datetime.now().astimezone().isoformat(timespec='milliseconds')}]{color} {level:<5} {Style.DIM}{logger_name:<{_max_logger_name}}{color}: {msg}{Style.RESET_ALL}")
-
-
-_DEFAULT_LOGGER_INFO: dict[LogLevel, tuple[str, Union[str, int]]] = {
-    LogLevel.DEBUG: ("DEBUG", Fore.CYAN),
-    LogLevel.INFO: ("INFO", Fore.GREEN),
-    LogLevel.WARN: ("WARN", Fore.YELLOW),
-    LogLevel.ERROR: ("ERROR", Fore.RED),
-    LogLevel.FATAL: ("FATAL", Fore.LIGHTRED_EX),
+_DEFAULT_LOGGER_INFO: dict[LogLevel, Union[str, int]] = {
+    LogLevel.DEBUG:  Fore.CYAN,
+    LogLevel.INFO: Fore.GREEN,
+    LogLevel.WARN: Fore.YELLOW,
+    LogLevel.ERROR: Fore.RED,
+    LogLevel.FATAL: Fore.LIGHTRED_EX,
 }
 
 
+# noinspection GrazieStyle
+def default_formatter(level: LogLevel, msg: str, logger_name: str, do_color: bool) -> str:
+    """Default formatter used by the logger. May be used in custom handlers.
+
+    :param level: The Log Level to use.
+    :param msg: The message to log.
+    :param logger_name: The name of the logger.
+    :param do_color: Whether or not to colorize the message."""
+    color = _DEFAULT_LOGGER_INFO[level] if do_color else ""
+    dim = Style.DIM if do_color else ""
+    timestamp = datetime.now().astimezone().isoformat(timespec="milliseconds")
+
+    return (f"{color}{dim}[{timestamp}]"
+            f"{color} {level.name:<5} {dim}"
+            f"{logger_name:<{_max_logger_name}}"
+            f"{color}: {msg}"
+            f"{Style.RESET_ALL if do_color else ''}"
+            )
+
+
+# noinspection GrazieStyle
 def default_handler(*, level: LogLevel, msg: str, logger_name: str, do_color: bool):
-    main_handler(_DEFAULT_LOGGER_INFO[level][0], _DEFAULT_LOGGER_INFO[level][1] if do_color else "", msg, logger_name)
+    """Default Handler used by the logger. Can be used to reset Handlers.
+
+    :param level: The Log Level to use.
+    :param msg: The message to log.
+    :param logger_name: The name of the logger.
+    :param do_color: Whether or not to colorize the message."""
+    print(default_formatter(level, msg, logger_name, do_color))
 
 
 class FatalError(Exception):
@@ -53,6 +77,18 @@ class Logger:
     The Logger class. It comes preloaded with default Handlers for all Log Levels.
     """
     __slots__ = ("_name", "_enabled_levels", "_handlers", "_do_color")
+
+    # noinspection PyPep8Naming
+    @staticmethod
+    @wraps(default_formatter)
+    def DEFAULT_FORMATTER():
+        return default_formatter
+
+    #noinspection PyPep8Naming
+    @staticmethod
+    @wraps(default_handler)
+    def DEFAULT_HANDLER():
+        return default_handler
 
     def __init__(self, name: str):
         """Create a new Logger instance."""
