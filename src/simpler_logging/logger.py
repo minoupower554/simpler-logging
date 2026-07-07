@@ -101,35 +101,28 @@ class Logger:
         return default_handler
 
     @staticmethod
-    def enable_default_level(level: Union[LogLevel, Iterable[LogLevel]]) -> None:
+    def enable_default_level(level: Union[LogLevel, Iterable[LogLevel]], *args: LogLevel) -> None:
         """Enable the given Loglevel or LogLevels in the default, affecting any Loggers created in the future.
         does NOT affect existing Loggers and does nothing if the LogLevel is already enabled.
 
         :param level: The LogLevel or LogLevels to enable."""
-        if isinstance(level, LogLevel):
-            _default_level.add(level)
-        else:
-            _default_level.update(level)
+        _default_level.update(({level} if isinstance(level, LogLevel) else set(level)).union(args))
 
     @staticmethod
-    def disable_default_level(level: Union[LogLevel, Iterable[LogLevel]]) -> None:
+    def disable_default_level(level: Union[LogLevel, Iterable[LogLevel]], *args) -> None:
         """Disable the given Loglevel or LogLevels in the default, affecting any Loggers created in the future.
         does NOT affect existing Loggers and does nothing if the LogLevel is already disabled.
 
         :param level: The LogLevel or LogLevels to disable."""
-        if isinstance(level, LogLevel):
-            _default_level.discard(level)
-        else:
-            _default_level.difference_update(level)
+        _default_level.difference_update(({level} if isinstance(level, LogLevel) else set(level)).union(args))
 
     @staticmethod
-    def toggle_default_level(level: Union[LogLevel, Iterable[LogLevel]]) -> None:
+    def toggle_default_level(level: Union[LogLevel, Iterable[LogLevel]], *args) -> None:
         """Toggle the given Loglevel or LogLevels in the default, affecting any Loggers created in the future.
         does NOT affect existing Loggers.
 
         :param level: The LogLevel or LogLevels to toggle."""
-        lvl = {level} if isinstance(level, LogLevel) else level
-        _default_level.symmetric_difference_update(lvl)
+        _default_level.symmetric_difference_update(({level} if isinstance(level, LogLevel) else set(level)).union(args))
 
     def __init__(self, name: str):
         """Create a new Logger instance."""
@@ -263,32 +256,25 @@ class Logger:
         self._handlers[LogLevel.FATAL] = handler
 
 
-    def enable_level(self, level: Union[LogLevel, Iterable[LogLevel]]):
+    def enable_level(self, level: Union[LogLevel, Iterable[LogLevel]], *args):
         """Enable the given LogLevel or LogLevels. Does nothing if the Level is already enabled.
 
         :param level: The LogLevel or LogLevels to enable."""
-        if isinstance(level, LogLevel):
-            self._enabled_levels.add(level)
-        else:
-            self._enabled_levels.update(level)
+        self._enabled_levels.update(({level} if isinstance(level, LogLevel) else set(level)).union(args))
 
 
-    def disable_level(self, level: Union[LogLevel, Iterable[LogLevel]]):
+    def disable_level(self, level: Union[LogLevel, Iterable[LogLevel]], *args):
         """Disable the given LogLevel or LogLevels. Does nothing if the Level is already disabled.
 
         :param level: The LogLevel or LogLevels to disable."""
-        if isinstance(level, LogLevel):
-            self._enabled_levels.discard(level)
-        else:
-            self._enabled_levels.difference_update(level)
+        self._enabled_levels.difference_update(({level} if isinstance(level, LogLevel) else set(level)).union(args))
 
 
-    def toggle_level(self, level: Union[LogLevel, Iterable[LogLevel]]):
+    def toggle_level(self, level: Union[LogLevel, Iterable[LogLevel]], *args):
         """Toggles the given LogLevel or LogLevels.
 
         :param level: The LogLevel or LogLevels to toggle."""
-        lvl = {level} if isinstance(level, LogLevel) else level
-        self._enabled_levels.symmetric_difference_update(lvl)
+        self._enabled_levels.symmetric_difference_update(({level} if isinstance(level, LogLevel) else set(level)).union(args))
 
 
     def min_level(self, level: LogLevel):
