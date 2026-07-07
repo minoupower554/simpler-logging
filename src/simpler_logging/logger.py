@@ -30,9 +30,9 @@ class Handler(Protocol):
 
 # a bit of global state, so terrifying!
 _max_logger_name: int = 0
-_default_level: set[LogLevel] = {LogLevel.INFO, LogLevel.WARN, LogLevel.ERROR, LogLevel.FATAL}
+_default_level: typing.Set[LogLevel] = {LogLevel.INFO, LogLevel.WARN, LogLevel.ERROR, LogLevel.FATAL}
 
-_DEFAULT_LOGGER_INFO: dict[LogLevel, Union[str, int]] = {
+_DEFAULT_LOGGER_INFO: typing.Dict[LogLevel, Union[str, int]] = {
     LogLevel.TRACE: Fore.CYAN,
     LogLevel.DEBUG: Fore.MAGENTA,
     LogLevel.INFO: Fore.GREEN,
@@ -136,7 +136,7 @@ class Logger:
         self._name = name
         self._enabled_levels = _default_level.copy()
 
-        self._handlers: dict[LogLevel, Handler] = {LogLevel.TRACE: default_handler, LogLevel.DEBUG: default_handler,
+        self._handlers: typing.Dict[LogLevel, Handler] = {LogLevel.TRACE: default_handler, LogLevel.DEBUG: default_handler,
                           LogLevel.INFO: default_handler, LogLevel.WARN: default_handler,
                           LogLevel.ERROR: default_handler, LogLevel.FATAL: default_handler}
         self._do_color = True
