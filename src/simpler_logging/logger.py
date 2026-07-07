@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import typing
-from functools import wraps
 from enum import IntEnum
 from colorama import init, Fore, Style
 from datetime import datetime
-from typing import Protocol, Iterable, Union
+from typing import Protocol, Iterable, Union, Type
 
 init()
 
@@ -100,29 +99,32 @@ class Logger:
         """Get the default handler used by the logger."""
         return default_handler
 
-    @staticmethod
-    def enable_default_level(level: Union[LogLevel, Iterable[LogLevel]], *args: LogLevel) -> None:
+    @classmethod
+    def enable_default_level(cls, level: Union[LogLevel, Iterable[LogLevel]], *args: LogLevel) -> Type[Logger]:
         """Enable the given Loglevel or LogLevels in the default, affecting any Loggers created in the future.
         does NOT affect existing Loggers and does nothing if the LogLevel is already enabled.
 
         :param level: The LogLevel or LogLevels to enable."""
         _default_level.update(({level} if isinstance(level, LogLevel) else set(level)).union(args))
+        return cls
 
-    @staticmethod
-    def disable_default_level(level: Union[LogLevel, Iterable[LogLevel]], *args) -> None:
+    @classmethod
+    def disable_default_level(cls, level: Union[LogLevel, Iterable[LogLevel]], *args) -> Type[Logger]:
         """Disable the given Loglevel or LogLevels in the default, affecting any Loggers created in the future.
         does NOT affect existing Loggers and does nothing if the LogLevel is already disabled.
 
         :param level: The LogLevel or LogLevels to disable."""
         _default_level.difference_update(({level} if isinstance(level, LogLevel) else set(level)).union(args))
+        return cls
 
-    @staticmethod
-    def toggle_default_level(level: Union[LogLevel, Iterable[LogLevel]], *args) -> None:
+    @classmethod
+    def toggle_default_level(cls, level: Union[LogLevel, Iterable[LogLevel]], *args) -> Type[Logger]:
         """Toggle the given Loglevel or LogLevels in the default, affecting any Loggers created in the future.
         does NOT affect existing Loggers.
 
         :param level: The LogLevel or LogLevels to toggle."""
         _default_level.symmetric_difference_update(({level} if isinstance(level, LogLevel) else set(level)).union(args))
+        return cls
 
     def __init__(self, name: str):
         """Create a new Logger instance."""
@@ -207,78 +209,89 @@ class Logger:
         raise FatalError(msg) from inner
 
 
-    def set_color(self, state: bool):
+    def set_color(self, state: bool) -> Logger:
         """Change whether Handlers should use colors.
 
         :param state: Whether Handlers should use colors."""
         self._do_color = state
+        return self
 
 
-    def trace_handler(self, handler: Handler):
+    def trace_handler(self, handler: Handler) -> Logger:
         """Set the trace Handler.
 
         :param handler: The handler to use."""
         self._handlers[LogLevel.TRACE] = handler
+        return self
 
 
-    def debug_handler(self, handler: Handler):
+    def debug_handler(self, handler: Handler) -> Logger:
         """Set the debug Handler.
 
         :param handler: The handler to use."""
         self._handlers[LogLevel.DEBUG] = handler
+        return self
 
 
-    def info_handler(self, handler: Handler):
+    def info_handler(self, handler: Handler) -> Logger:
         """Set the info Handler.
 
         :param handler: The handler to use."""
         self._handlers[LogLevel.INFO] = handler
+        return self
 
 
-    def warn_handler(self, handler: Handler):
+    def warn_handler(self, handler: Handler) -> Logger:
         """Set the warn Handler.
 
         :param handler: The handler to use."""
         self._handlers[LogLevel.WARN] = handler
+        return self
 
 
-    def error_handler(self, handler: Handler):
+    def error_handler(self, handler: Handler) -> Logger:
         """Set the error Handler.
 
         :param handler: The handler to use."""
         self._handlers[LogLevel.ERROR] = handler
+        return self
 
 
-    def fatal_handler(self, handler: Handler):
+    def fatal_handler(self, handler: Handler) -> Logger:
         """Set the fatal Handler.
 
         :param handler: The handler to use."""
         self._handlers[LogLevel.FATAL] = handler
+        return self
 
 
-    def enable_level(self, level: Union[LogLevel, Iterable[LogLevel]], *args):
+    def enable_level(self, level: Union[LogLevel, Iterable[LogLevel]], *args) -> Logger:
         """Enable the given LogLevel or LogLevels. Does nothing if the Level is already enabled.
 
         :param level: The LogLevel or LogLevels to enable."""
         self._enabled_levels.update(({level} if isinstance(level, LogLevel) else set(level)).union(args))
+        return self
 
 
-    def disable_level(self, level: Union[LogLevel, Iterable[LogLevel]], *args):
+    def disable_level(self, level: Union[LogLevel, Iterable[LogLevel]], *args) -> Logger:
         """Disable the given LogLevel or LogLevels. Does nothing if the Level is already disabled.
 
         :param level: The LogLevel or LogLevels to disable."""
         self._enabled_levels.difference_update(({level} if isinstance(level, LogLevel) else set(level)).union(args))
+        return self
 
 
-    def toggle_level(self, level: Union[LogLevel, Iterable[LogLevel]], *args):
+    def toggle_level(self, level: Union[LogLevel, Iterable[LogLevel]], *args) -> Logger:
         """Toggles the given LogLevel or LogLevels.
 
         :param level: The LogLevel or LogLevels to toggle."""
         self._enabled_levels.symmetric_difference_update(({level} if isinstance(level, LogLevel) else set(level)).union(args))
+        return self
 
 
-    def min_level(self, level: LogLevel):
+    def min_level(self, level: LogLevel) -> Logger:
         """Set the minimum LogLevel to use. Overwrites previous LogLevel Configuration.
 
         :param level: The LogLevel to use."""
         self._enabled_levels = {x for x in LogLevel if x >= level}
+        return self
