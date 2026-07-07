@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import typing
 from functools import wraps
 from enum import IntEnum
 from colorama import init, Fore, Style
@@ -8,27 +10,31 @@ from typing import Protocol, Iterable, Union
 init()
 
 class LogLevel(IntEnum):
-    """Log Levels. Includes DEBUG, INFO, WARN, ERROR, and FATAL in that severity order."""
-    DEBUG = 10
-    INFO = 20
-    WARN = 30
-    ERROR = 40
-    FATAL = 50
+    """Log Levels. Includes TRACE, DEBUG, INFO, WARN, ERROR, and FATAL in that severity order."""
+    TRACE = 10
+    DEBUG = 20
+    INFO = 30
+    WARN = 40
+    ERROR = 50
+    FATAL = 60
 
 
 class Handler(Protocol):
     """
     A Protocol definition for log Handlers.
 
-    Function following it is expected to be able to receive msg (str), logger_name (str), and do_color (bool).
+    Function following it is expected to be able to receive msg (str), logger_name (str), do_color (bool) as well as *args and **kwargs.
     """
-    def __call__(self, *, level: LogLevel, msg: str, logger_name: str, do_color: bool) -> None:
+    def __call__(self, *args, level: LogLevel, msg: str, logger_name: str, do_color: bool, **kwargs) -> None:
         ...
 
+# a bit of global state, so terrifying!
 _max_logger_name: int = 0
+_default_level: set[LogLevel] = {LogLevel.INFO, LogLevel.WARN, LogLevel.ERROR, LogLevel.FATAL}
 
 _DEFAULT_LOGGER_INFO: dict[LogLevel, Union[str, int]] = {
-    LogLevel.DEBUG:  Fore.CYAN,
+    LogLevel.TRACE: Fore.CYAN,
+    LogLevel.DEBUG: Fore.MAGENTA,
     LogLevel.INFO: Fore.GREEN,
     LogLevel.WARN: Fore.YELLOW,
     LogLevel.ERROR: Fore.RED,
@@ -37,7 +43,7 @@ _DEFAULT_LOGGER_INFO: dict[LogLevel, Union[str, int]] = {
 
 
 # noinspection GrazieStyle
-def default_formatter(level: LogLevel, msg: str, logger_name: str, do_color: bool) -> str:
+def default_formatter(*args, level: LogLevel, msg: str, logger_name: str, do_color: bool, **kwargs) -> str:
     """Default formatter used by the logger. May be used in custom handlers.
 
     :param level: The Log Level to use.
@@ -51,20 +57,24 @@ def default_formatter(level: LogLevel, msg: str, logger_name: str, do_color: boo
     return (f"{color}{dim}[{timestamp}]"
             f"{color} {level.name:<5} {dim}"
             f"{logger_name:<{_max_logger_name}}"
-            f"{color}: {msg}"
+            f"""{color}: {' '.join(
+                    [msg]
+                    + [repr(x) for x in args]
+                    + [f'{k}={v!r}' for k, v in kwargs.items()]
+                )}"""
             f"{Style.RESET_ALL if do_color else ''}"
             )
 
 
 # noinspection GrazieStyle
-def default_handler(*, level: LogLevel, msg: str, logger_name: str, do_color: bool):
+def default_handler(*args, level: LogLevel, msg: str, logger_name: str, do_color: bool, **kwargs):
     """Default Handler used by the logger. Can be used to reset Handlers.
 
     :param level: The Log Level to use.
     :param msg: The message to log.
     :param logger_name: The name of the logger.
     :param do_color: Whether or not to colorize the message."""
-    print(default_formatter(level, msg, logger_name, do_color))
+    print(default_formatter(*args, level, msg, logger_name, do_color, **kwargs))
 
 
 class FatalError(Exception):
@@ -78,26 +88,57 @@ class Logger:
     """
     __slots__ = ("_name", "_enabled_levels", "_handlers", "_do_color")
 
-    # noinspection PyPep8Naming
+
     @staticmethod
-    @wraps(default_formatter)
-    def DEFAULT_FORMATTER():
+    def get_default_formatter() -> typing.Callable[..., str]:
+        """Get the default formatter used by the logger."""
         return default_formatter
 
-    #noinspection PyPep8Naming
+
     @staticmethod
     @wraps(default_handler)
-    def DEFAULT_HANDLER():
+    def get_default_handler() -> Handler:
         return default_handler
+
+    @staticmethod
+    def enable_default_level(level: Union[LogLevel, Iterable[LogLevel]]) -> None:
+        """Enable the given Loglevel or LogLevels in the default, affecting any Loggers created in the future.
+        does NOT affect existing Loggers and does nothing if the LogLevel is already enabled.
+
+        :param level: The LogLevel or LogLevels to enable."""
+        if isinstance(level, LogLevel):
+            _default_level.add(level)
+        else:
+            _default_level.update(level)
+
+    @staticmethod
+    def disable_default_level(level: Union[LogLevel, Iterable[LogLevel]]) -> None:
+        """Disable the given Loglevel or LogLevels in the default, affecting any Loggers created in the future.
+        does NOT affect existing Loggers and does nothing if the LogLevel is already disabled.
+
+        :param level: The LogLevel or LogLevels to disable."""
+        if isinstance(level, LogLevel):
+            _default_level.discard(level)
+        else:
+            _default_level.difference_update(level)
+
+    @staticmethod
+    def toggle_default_level(level: Union[LogLevel, Iterable[LogLevel]]) -> None:
+        """Toggle the given Loglevel or LogLevels in the default, affecting any Loggers created in the future.
+        does NOT affect existing Loggers.
+
+        :param level: The LogLevel or LogLevels to toggle."""
+        lvl = {level} if isinstance(level, LogLevel) else level
+        _default_level.symmetric_difference_update(lvl)
 
     def __init__(self, name: str):
         """Create a new Logger instance."""
         self._name = name
-        self._enabled_levels = {LogLevel.INFO, LogLevel.WARN, LogLevel.ERROR, LogLevel.FATAL}
+        self._enabled_levels = _default_level.copy()
 
-        self._handlers: dict[LogLevel, Handler] = {LogLevel.DEBUG: default_handler, LogLevel.INFO: default_handler,
-                          LogLevel.WARN: default_handler, LogLevel.ERROR: default_handler,
-                          LogLevel.FATAL: default_handler}
+        self._handlers: dict[LogLevel, Handler] = {LogLevel.TRACE: default_handler, LogLevel.DEBUG: default_handler,
+                          LogLevel.INFO: default_handler, LogLevel.WARN: default_handler,
+                          LogLevel.ERROR: default_handler, LogLevel.FATAL: default_handler}
         self._do_color = True
         global _max_logger_name
         _max_logger_name = max(_max_logger_name, len(name)+1)
@@ -109,14 +150,12 @@ class Logger:
         :param msg: The message to log."""
         if level in self._enabled_levels:
             self._handlers[level](
+                *args,
                 level=level,
-                msg=" ".join(
-                    [msg]
-                    + [str(x) for x in args]
-                    + [f"{k}={v}" for k, v in kwargs.items()]
-                ),
+                msg=msg,
                 logger_name=self._name,
                 do_color=self._do_color,
+                **kwargs,
             )
 
 
@@ -124,6 +163,13 @@ class Logger:
     def name(self) -> str:
         """Get the name of the Logger."""
         return self._name
+
+
+    def trace(self, msg: str, *args, **kwargs) -> None:
+        """Log a trace message.
+
+        :param msg: The message to log."""
+        self.log(LogLevel.TRACE, msg, *args, **kwargs)
 
 
     def debug(self, msg: str, *args, **kwargs) -> None:
@@ -175,6 +221,13 @@ class Logger:
         self._do_color = state
 
 
+    def trace_handler(self, handler: Handler):
+        """Set the trace Handler.
+
+        :param handler: The handler to use."""
+        self._handlers[LogLevel.TRACE] = handler
+
+
     def debug_handler(self, handler: Handler):
         """Set the debug Handler.
 
@@ -211,9 +264,9 @@ class Logger:
 
 
     def enable_level(self, level: Union[LogLevel, Iterable[LogLevel]]):
-        """Enable the given Log Level or Set of Log Levels. Does nothing if the Level is already enabled.
+        """Enable the given LogLevel or LogLevels. Does nothing if the Level is already enabled.
 
-        :param level: The Log Level or Set of Log Levels to enable."""
+        :param level: The LogLevel or LogLevels to enable."""
         if isinstance(level, LogLevel):
             self._enabled_levels.add(level)
         else:
@@ -221,9 +274,9 @@ class Logger:
 
 
     def disable_level(self, level: Union[LogLevel, Iterable[LogLevel]]):
-        """Disable the given Log Level or Set of Log Levels. Does nothing if the Level is already disabled.
+        """Disable the given LogLevel or LogLevels. Does nothing if the Level is already disabled.
 
-        :param level: The Log Level or Set of Log Levels to disable."""
+        :param level: The LogLevel or LogLevels to disable."""
         if isinstance(level, LogLevel):
             self._enabled_levels.discard(level)
         else:
@@ -231,15 +284,15 @@ class Logger:
 
 
     def toggle_level(self, level: Union[LogLevel, Iterable[LogLevel]]):
-        """Toggles the given Log Level or Set of Log Levels.
+        """Toggles the given LogLevel or LogLevels.
 
-        :param level: The Log Level or Set of Log Levels to toggle."""
+        :param level: The LogLevel or LogLevels to toggle."""
         lvl = {level} if isinstance(level, LogLevel) else level
         self._enabled_levels.symmetric_difference_update(lvl)
 
 
     def min_level(self, level: LogLevel):
-        """Set the minimum Log Level to use. Overwrites previous Log Level Configuration.
+        """Set the minimum LogLevel to use. Overwrites previous LogLevel Configuration.
 
-        :param level: The Log Level to use."""
+        :param level: The LogLevel to use."""
         self._enabled_levels = {x for x in LogLevel if x >= level}
