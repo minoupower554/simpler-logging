@@ -96,8 +96,8 @@ class Logger:
 
 
     @staticmethod
-    @wraps(default_handler)
     def get_default_handler() -> Handler:
+        """Get the default handler used by the logger."""
         return default_handler
 
     @staticmethod
